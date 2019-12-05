@@ -27,34 +27,76 @@ function main(programText) { // old school name :)
         let opcode = opcodeWithParamModes % 100;
         let paramModes = Math.floor(opcodeWithParamModes / 100);
         switch (opcode) {
-        case 1:
-        case 2:
+        case 1: {
             let operator = getParameters(2, program, programPointer, paramModes);
-            let result = opcode == 1 ? operator[0] + operator[1] : operator[0] * operator[1];
             let outputPos = program[programPointer+3];
-            program[outputPos] = result;
+            program[outputPos] = operator[0] + operator[1];
             programPointer += 4;
             break;
-        case 3:
+        }
+        case 2: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            let outputPos = program[programPointer+3];
+            program[outputPos] = operator[0] * operator[1];
+            programPointer += 4;
+            break;
+        }
+        case 3: {
             let inputStoragePos = program[programPointer+1];
             let input = inputs.shift();
-            if (input) {
-                program[inputStoragePos] = input;
-            }
-            else {
+            if (input == null) {
                 console.log("Program execution aborted, not enough inputs");
                 programTerminated = true;
             }
+            else {
+                program[inputStoragePos] = input;
+            }
             programPointer += 2;
             break;
-        case 4:
-            let outputStoragePos = program[programPointer+1];
-            let output = program[outputStoragePos];
+        }
+        case 4: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            let output = operator[0];
             console.log(`Output: ${output}`);
             programPointer += 2;
             break;
+        }
+        case 5: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            if (operator[0] != 0) {
+                programPointer = operator[1];
+            }
+            else {
+                programPointer += 3;
+            }
+            break;
+        }
+        case 6: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            if (operator[0] == 0) {
+                programPointer = operator[1];
+            }
+            else {
+                programPointer += 3;
+            }
+            break;
+        }
+        case 7: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            let outputPos = program[programPointer+3];
+            program[outputPos] = (operator[0] < operator[1]) ? 1 : 0;
+            programPointer += 4;
+            break;
+        }
+        case 8: {
+            let operator = getParameters(2, program, programPointer, paramModes);
+            let outputPos = program[programPointer+3];
+            program[outputPos] = (operator[0] == operator[1]) ? 1 : 0;
+            programPointer += 4;
+            break;
+        }
         case 99:
-            console.log(`Program execution halted.\nValue at position 0: ${program[0]}`);
+            console.log(`Program execution halted.`);
             programTerminated = true;
             break;
         default:
