@@ -12,45 +12,48 @@ function getParameters(count, currentState, currentPointer, paramModes) {
     return parameters;
 }
 
-module.exports = function main(programText, inputs, outputBuffer) { // old school name :)
-    let program = programText.split(",").map(s => parseInt(s));
-    let programPointer = 0;
-    let programTerminated = false;
+function compileProgram(programText) {
+    return programText.split(",").map(s => parseInt(s));
+}
 
-    while (programPointer < program.length && !programTerminated) {
-        let opcodeWithParamModes = program[programPointer];
-        let opcode = opcodeWithParamModes % 100;
+function resumeProgram(programState, instructionPointer, inputs, outputBuffer) {
+    let programPointer = instructionPointer || 0;
+    let programTerminated = false;
+    let currentOpcode;
+
+    while (programPointer < programState.length && !programTerminated) {
+        let opcodeWithParamModes = programState[programPointer];
+        currentOpcode = opcodeWithParamModes % 100;
         let paramModes = Math.floor(opcodeWithParamModes / 100);
-        switch (opcode) {
+        switch (currentOpcode) {
         case 1: {
-            let operator = getParameters(2, program, programPointer, paramModes);
-            let outputPos = program[programPointer+3];
-            program[outputPos] = operator[0] + operator[1];
+            let operator = getParameters(2, programState, programPointer, paramModes);
+            let outputPos = programState[programPointer+3];
+            programState[outputPos] = operator[0] + operator[1];
             programPointer += 4;
             break;
         }
         case 2: {
-            let operator = getParameters(2, program, programPointer, paramModes);
-            let outputPos = program[programPointer+3];
-            program[outputPos] = operator[0] * operator[1];
+            let operator = getParameters(2, programState, programPointer, paramModes);
+            let outputPos = programState[programPointer+3];
+            programState[outputPos] = operator[0] * operator[1];
             programPointer += 4;
             break;
         }
         case 3: {
-            let inputStoragePos = program[programPointer+1];
+            let inputStoragePos = programState[programPointer+1];
             let input = inputs.shift();
             if (input == null) {
-                console.log("Program execution aborted, not enough inputs");
                 programTerminated = true;
             }
             else {
-                program[inputStoragePos] = input;
+                programState[inputStoragePos] = input;
+                programPointer += 2;
             }
-            programPointer += 2;
             break;
         }
         case 4: {
-            let operator = getParameters(2, program, programPointer, paramModes);
+            let operator = getParameters(2, programState, programPointer, paramModes);
             let output = operator[0];
             // console.log(`Output: ${output}`);
             outputBuffer.push(output);
@@ -58,7 +61,7 @@ module.exports = function main(programText, inputs, outputBuffer) { // old schoo
             break;
         }
         case 5: {
-            let operator = getParameters(2, program, programPointer, paramModes);
+            let operator = getParameters(2, programState, programPointer, paramModes);
             if (operator[0] != 0) {
                 programPointer = operator[1];
             }
@@ -68,7 +71,7 @@ module.exports = function main(programText, inputs, outputBuffer) { // old schoo
             break;
         }
         case 6: {
-            let operator = getParameters(2, program, programPointer, paramModes);
+            let operator = getParameters(2, programState, programPointer, paramModes);
             if (operator[0] == 0) {
                 programPointer = operator[1];
             }
@@ -78,16 +81,16 @@ module.exports = function main(programText, inputs, outputBuffer) { // old schoo
             break;
         }
         case 7: {
-            let operator = getParameters(2, program, programPointer, paramModes);
-            let outputPos = program[programPointer+3];
-            program[outputPos] = (operator[0] < operator[1]) ? 1 : 0;
+            let operator = getParameters(2, programState, programPointer, paramModes);
+            let outputPos = programState[programPointer+3];
+            programState[outputPos] = (operator[0] < operator[1]) ? 1 : 0;
             programPointer += 4;
             break;
         }
         case 8: {
-            let operator = getParameters(2, program, programPointer, paramModes);
-            let outputPos = program[programPointer+3];
-            program[outputPos] = (operator[0] == operator[1]) ? 1 : 0;
+            let operator = getParameters(2, programState, programPointer, paramModes);
+            let outputPos = programState[programPointer+3];
+            programState[outputPos] = (operator[0] == operator[1]) ? 1 : 0;
             programPointer += 4;
             break;
         }
@@ -96,11 +99,30 @@ module.exports = function main(programText, inputs, outputBuffer) { // old schoo
             programTerminated = true;
             break;
         default:
-            console.log(`Error: Opcode ${opcode} at position ${programPointer} not recognized`);
-            console.log('Memory state:', program);
-            programTerminated = true;
-            break;
+            console.log(`Error: Opcode ${currentOpcode} at position ${programPointer} not recognized`);
+            console.log('Memory state:', programState);
+            return {
+                exitOpcode: -1,
+                errorOpcode: currentOpcode,
+                instructionPointer: programPointer,
+                programState: programState
+            };
         }
     }
+    return {
+        exitOpcode: currentOpcode,
+        instructionPointer: programPointer,
+        programState: programState
+    };
 }
 
+function main(programText, inputs, outputBuffer) { // old school name :)
+    let programState = compileProgram(programText);
+    return resumeProgram(programState, 0, inputs, outputBuffer);
+}
+
+module.exports = {
+    compileProgram: compileProgram,
+    resumeProgram: resumeProgram,
+    compileAndRun: main
+}
