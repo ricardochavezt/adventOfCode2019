@@ -69,11 +69,11 @@ function resumeProgram(programState, instructionPointer, inputs, outputBuffer, r
             let inputStoragePos = getParameterWriteAddress(programState[programPointer+1] || 0, paramModes.shift() || 0, programState, relativeBase);
             let input = inputs.shift();
             if (input == null) {
-                console.log("Program awaiting for input");
+                // console.log("Program awaiting for input");
                 programTerminated = true;
             }
             else {
-                console.log("Inputting value", input, "into position", inputStoragePos);
+                // console.log("Inputting value", input, "into position", inputStoragePos);
                 programState[inputStoragePos] = input;
                 programPointer += 2;
             }
