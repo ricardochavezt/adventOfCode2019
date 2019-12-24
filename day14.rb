@@ -61,6 +61,11 @@ if __FILE__ == $0
   recipes = parseRecipes(ARGF.read)
   # puts recipes
   waste = Hash.new(0)
-  puts calculateOreNeeded("FUEL", 1, recipes, waste)
+  puts "Part 1:", calculateOreNeeded("FUEL", 1, recipes, waste)
   # puts waste
+  MAX_ORE = 1000000000000
+  max_fuel = (1..MAX_ORE).bsearch do |fuel|
+    calculateOreNeeded("FUEL", fuel, recipes, Hash.new(0)) > MAX_ORE
+  end
+  puts "Part 2:", max_fuel - 1
 end
